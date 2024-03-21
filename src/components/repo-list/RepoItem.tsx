@@ -1,4 +1,4 @@
-import { Setter, createEffect } from "solid-js";
+import { Setter } from "solid-js";
 import { RepoFragment } from "../../gql";
 import { FragmentType, useFragment } from "../../generated";
 import { RepoFragmentFragment } from "../../generated/graphql";
@@ -13,9 +13,6 @@ interface RepoItemProps {
 export const RepoItem = (props: RepoItemProps) => {
   const repoFrag = useFragment(RepoFragment, props.repo);
   const target = () => repoFrag.defaultBranchRef?.target?.__typename === 'Commit' ? repoFrag.defaultBranchRef?.target : undefined
-  createEffect(() => {
-    console.log(target())
-  });
 
   const handleRepoClick = () => {
     props.setOpenSidebar(true)
@@ -23,11 +20,11 @@ export const RepoItem = (props: RepoItemProps) => {
   }
   
   return (
-    <div class='flex items-center'>
+    <div class='flex items-center bg-slate-500 p-2 rounded-lg'>
       <button onClick={handleRepoClick}>
         <GoToArrow className='w-6 h-6 text-green-500 mt-0.5 mr-0.5 hover:text-green-600' />
       </button>
-      <h1 class='text-3xl font-bold'>{repoFrag?.name}</h1>
+      <h1 class='text-2xl font-bold'>{repoFrag?.name}</h1>
     </div>
   );
 };
