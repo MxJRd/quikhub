@@ -3,6 +3,7 @@ import { RepoFragment } from "../../gql";
 import { FragmentType, useFragment } from "../../generated";
 import { RepoFragmentFragment } from "../../generated/graphql";
 import { GoToArrow } from "../common/icons/GoToArrow";
+import { StatusLight, StatusLightColorMap } from "../common/StatusLight";
 
 interface RepoItemProps {
   repo: FragmentType<typeof RepoFragment>
@@ -24,6 +25,7 @@ export const RepoItem = (props: RepoItemProps) => {
       <button onClick={handleRepoClick}>
         <GoToArrow className='w-6 h-6 text-green-500 mt-0.5 mr-0.5 hover:text-green-600' />
       </button>
+      <StatusLight color={StatusLightColorMap['green']} />
       <h1 class='text-2xl font-bold'>{repoFrag?.name}</h1>
     </div>
   );

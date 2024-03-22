@@ -1,4 +1,4 @@
-import { For, createSignal } from "solid-js";
+import { For, Show, createSignal } from "solid-js";
 import { RepoFragmentFragment, UserReposQuery } from "../generated/graphql.ts";
 import { createGraphQLClient } from "@solid-primitives/graphql";
 import { RepoFragment, UserReposCommits } from '../gql.ts';
@@ -6,8 +6,10 @@ import { RepoList } from "../components/repo-list/RepoList.tsx";
 import { RepoItem } from "../components/repo-list/RepoItem.tsx";
 import { Sidebar } from "../components/common/sidebar/Sidebar.tsx";
 import { TooltipWithText } from "../components/common/Tooltip.tsx";
-import { CommitItem } from "../components/common/commit-item/CommitItem.tsx";
 import { useFragment } from "../generated/fragment-masking.ts";
+import { format } from "date-fns";
+import { DayContainer } from "../components/common/DayContainer.tsx";
+import { CommitType } from "../components/common/commit-item/types.ts";
 
 const userReposCommits = createGraphQLClient("https://api.github.com/graphql", {
   headers: {
@@ -15,6 +17,10 @@ const userReposCommits = createGraphQLClient("https://api.github.com/graphql", {
     'user-agent': 'node.js'
   }
 });
+
+export type CommitHistoriesByDateType = {
+  [key: string]: CommitType[]
+}
 
 export const Home = () => {
   const variables = { user: "mxjrd" };
@@ -28,10 +34,27 @@ export const Home = () => {
     const currRepo = useFragment(RepoFragment, repo)
     return currRepo?.defaultBranchRef?.target?.__typename === "Commit" ? currRepo.defaultBranchRef.target : undefined
   })
-  const orderedCommitHistories = () => 
-    allRepoCommitHistories()?.map((repoCommitHistory) => repoCommitHistory?.history.nodes)
-      .flat()
-      .sort((currDate, nextDate) => nextDate?.committedDate?.localeCompare(currDate?.committedDate))
+
+  const commitHistories = () => 
+    allRepoCommitHistories()?.map((repoCommitHistory) => repoCommitHistory?.history.nodes).flat()
+
+  const orderedCommitHistories = () =>
+    commitHistories()?.sort((currDate, nextDate) => nextDate?.committedDate?.localeCompare(currDate?.committedDate))
+
+   const mappedCommitHistoriesByDate = () => {
+    const allOrderedCommitHistories = commitHistories()
+    const mappedCommitHistoriesByDate: CommitHistoriesByDateType = {}
+
+    allOrderedCommitHistories?.forEach((commit) => {
+      const currDate = format(new Date(commit?.committedDate), 'yyyy-MM-dd')
+      if(!mappedCommitHistoriesByDate[currDate]) mappedCommitHistoriesByDate[currDate] = []
+      mappedCommitHistoriesByDate[currDate].push(commit)
+    })
+
+    return mappedCommitHistoriesByDate
+
+  }
+  const mappedCommitHistoryKeys = () => Object.keys(mappedCommitHistoriesByDate()).sort((prev, next) => next.localeCompare(prev))
   
   const repoTarget = () => {
     const currRepo = repo()
@@ -41,18 +64,18 @@ export const Home = () => {
   return (
     <main>
       <div class='flex'>
-      <div class='flex-1 gap-1 p-6'>
-        <div>
-          <h2 class='text-3xl font-bold'>Recent Repositories</h2>
-          <hr class='mt-1 mb-4' />
-          <div class='flex flex-col gap-1.5 pr-6'>
-            <For each={repos()}>
-              {
-                (repo) => repo && <RepoItem setRepo={setRepo} setOpenSidebar={setOpenSidebar} repo={repo} />
-              }
-            </For>
+        <div class='flex-1 gap-1 p-6'>
+          <div>
+            <h2 class='text-3xl font-bold'>Recent Repositories</h2>
+            <hr class='mt-1 mb-4' />
+            <div class='flex flex-col gap-1.5 pr-6'>
+              <For each={repos()}>
+                {
+                  (repo) => repo && <RepoItem setRepo={setRepo} setOpenSidebar={setOpenSidebar} repo={repo} />
+                }
+              </For>
+            </div>
           </div>
-        </div>
           <Sidebar repoName={repo()?.name} openSidebar={openSidebar} setOpenSidebar={setOpenSidebar}>
             <For each={repoTarget()?.history.nodes}>
               {
@@ -63,11 +86,14 @@ export const Home = () => {
         </div>
         <div class='flex-1 p-6'>
           <RepoList>
-            <For each={orderedCommitHistories()}>
-              {
-                (commit) => commit && <CommitItem commit={commit} />
-              }
-            </For>
+            <Show when={mappedCommitHistoriesByDate()} >
+              <For each={mappedCommitHistoryKeys()}>
+                {
+                  (dateKey) => <DayContainer dateKey={dateKey} commits={mappedCommitHistoriesByDate()[dateKey]} />
+                }
+              </For>
+            </Show>
+
           </RepoList>
         </div>
       </div>

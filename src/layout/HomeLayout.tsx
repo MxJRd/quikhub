@@ -15,8 +15,10 @@ export const HomeLayout = () => {
 
   return (
     <div class="flex flex-col md:flex-row min-h-screen">
-      <aside class="bg-gray-800 text-white w-full md:w-64 p-5">
-        Sidebar
+      <aside class="bg-gray-800 text-white w-full min-w-lg w-64 md:w-64 p-5">
+        <nav>
+          <li>Repos</li>
+        </nav>
       </aside>
       <div class="flex flex-col flex-1">
         <header class="bg-slate-500 text-white p-5 flex justify-between">
