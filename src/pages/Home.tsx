@@ -1,4 +1,4 @@
-import { For, createSignal } from "solid-js";
+import { For, Show, createSignal } from "solid-js";
 import { RepoFragmentFragment, UserReposQuery } from "../generated/graphql.ts";
 import { createGraphQLClient } from "@solid-primitives/graphql";
 import { RepoFragment, UserReposCommits } from '../gql.ts';
@@ -6,8 +6,10 @@ import { RepoList } from "../components/repo-list/RepoList.tsx";
 import { RepoItem } from "../components/repo-list/RepoItem.tsx";
 import { Sidebar } from "../components/common/sidebar/Sidebar.tsx";
 import { TooltipWithText } from "../components/common/Tooltip.tsx";
-import { CommitItem } from "../components/common/commit-item/CommitItem.tsx";
 import { useFragment } from "../generated/fragment-masking.ts";
+import { format, parseISO } from "date-fns";
+import { DayContainer } from "../components/common/DayContainer.tsx";
+import { CommitHistoriesByDateType } from "./types.ts";
 
 const userReposCommits = createGraphQLClient("https://api.github.com/graphql", {
   headers: {
@@ -28,10 +30,25 @@ export const Home = () => {
     const currRepo = useFragment(RepoFragment, repo)
     return currRepo?.defaultBranchRef?.target?.__typename === "Commit" ? currRepo.defaultBranchRef.target : undefined
   })
-  const orderedCommitHistories = () => 
-    allRepoCommitHistories()?.map((repoCommitHistory) => repoCommitHistory?.history.nodes)
-      .flat()
-      .sort((currDate, nextDate) => nextDate?.committedDate?.localeCompare(currDate?.committedDate))
+
+  const commitHistories = () => 
+    allRepoCommitHistories()?.map((repoCommitHistory) => repoCommitHistory?.history.nodes).flat()
+
+   const mappedCommitHistoriesByDate = () => {
+    const allOrderedCommitHistories = commitHistories()
+    const mappedCommitHistoriesByDate: CommitHistoriesByDateType = {}
+
+    allOrderedCommitHistories?.forEach((commit) => {
+      const date = parseISO(commit?.committedDate)
+      const currDate = format(date, 'yyyy-MM-dd')
+      if(!mappedCommitHistoriesByDate[currDate]) mappedCommitHistoriesByDate[currDate] = { commits: [], earliestCommitDate: date }
+      mappedCommitHistoriesByDate[currDate]['commits'].push(commit)
+    })
+
+    return mappedCommitHistoriesByDate
+
+  }
+  const mappedCommitHistoryKeys = () => Object.keys(mappedCommitHistoriesByDate()).sort((prev, next) => next.localeCompare(prev))
   
   const repoTarget = () => {
     const currRepo = repo()
@@ -63,11 +80,13 @@ export const Home = () => {
         </div>
         <div class='flex-1 p-6'>
           <RepoList>
-            <For each={orderedCommitHistories()}>
-              {
-                (commit) => commit && <CommitItem commit={commit} />
-              }
-            </For>
+            <Show when={mappedCommitHistoriesByDate()} >
+              <For each={mappedCommitHistoryKeys()}>
+                {
+                  (dateKey) => <DayContainer dateKey={dateKey} commitDay={mappedCommitHistoriesByDate()} />
+                }
+              </For>
+            </Show>
           </RepoList>
         </div>
       </div>

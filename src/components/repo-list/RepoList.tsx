@@ -6,7 +6,7 @@ export const RepoList = ({ children }: { children: JSX.Element }) => {
       <h2 class='font-bold text-3xl'>Most recent commits.</h2>
       <hr class='mt-1 mb-4' />
       {/* <input placeholder='Fux'></input> */}
-      <div class='flex flex-col gap-2'>
+      <div class='flex flex-col gap-4'>
         {children}
       </div>
     </div>
